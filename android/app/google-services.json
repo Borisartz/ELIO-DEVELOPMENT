@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "250721309748",
+    "project_id": "elio-apps",
+    "storage_bucket": "elio-apps.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:250721309748:android:025a3ad6bd616e882de661",
+        "android_client_info": {
+          "package_name": "com.boris.elio"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA5iA47llSLHLXUO18-jOelSFp1Z9rpdbI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:250721309748:android:d2492953e44a5cbd2de661",
+        "android_client_info": {
+          "package_name": "com.example.flutter_application_1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA5iA47llSLHLXUO18-jOelSFp1Z9rpdbI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
