@@ -12,7 +12,20 @@
           "package_name": "com.boris.elio"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "250721309748-erh5sg86g7emg87dm4237utqp0mga5ip.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.boris.elio",
+            "certificate_hash": "9412d5d62abe8a651ab93503c354a6dedcd0d217"
+          }
+        },
+        {
+          "client_id": "250721309748-la1mikrov7nhdno6d55389l0du6p457f.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyA5iA47llSLHLXUO18-jOelSFp1Z9rpdbI"
@@ -20,26 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:250721309748:android:d2492953e44a5cbd2de661",
-        "android_client_info": {
-          "package_name": "com.example.flutter_application_1"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyA5iA47llSLHLXUO18-jOelSFp1Z9rpdbI"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "250721309748-la1mikrov7nhdno6d55389l0du6p457f.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "250721309748-qv2671ugl29j1c7fljj9jqj07gbfl7lt.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.flutterApplication1"
+              }
+            }
+          ]
         }
       }
     }

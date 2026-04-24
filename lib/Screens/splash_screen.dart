@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'login_screen.dart'; // you'll build this in Phase 2
-import 'home_screen.dart'; // you'll build this in Phase 3
+import 'login_screen.dart';
+import 'home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   final FirebaseAuth auth;
@@ -42,20 +42,17 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     _controller.forward();
-
-    // Wait 2.5s then route based on auth state
     Future.delayed(const Duration(milliseconds: 2500), _navigate);
   }
 
-  void _navigate() {
+    void _navigate() {
     final user = widget.auth.currentUser;
-
     if (!mounted) return;
 
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         pageBuilder: (_, _, _) =>
-            user != null ? const HomeScreen() : const LoginScreen(),
+            user != null ? const HomeScreen() : LoginScreen(auth: widget.auth),
         transitionsBuilder: (_, anim, _, child) =>
             FadeTransition(opacity: anim, child: child),
         transitionDuration: const Duration(milliseconds: 600),
@@ -72,7 +69,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F6E56), // ELIO brand teal
+      backgroundColor: const Color(0xFF0F6E56),
       body: Center(
         child: AnimatedBuilder(
           animation: _controller,
@@ -85,7 +82,6 @@ class _SplashScreenState extends State<SplashScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Logo — replace with your SVG asset
               Container(
                 width: 110,
                 height: 110,
