@@ -27,7 +27,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // ── Colors (matched to your splash/theme) ─────────────────
   static const Color _primary = Color(0xFF1D9E75);
-  static const Color _primaryDark = Color(0xFF0F6E56);
   static const Color _textDark = Color(0xFF1C2833);
   static const Color _textMuted = Color(0xFF5D6D7E);
   static const Color _textHint = Color(0xFFAEB6BF);
