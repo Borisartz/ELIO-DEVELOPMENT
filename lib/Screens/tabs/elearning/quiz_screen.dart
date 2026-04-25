@@ -20,8 +20,9 @@ class _QuizScreenState extends State<QuizScreen> {
     setState(() {
       _selectedOption = index;
       _isAnswered = true;
-      if (index == widget.category.quiz[_currentQuestion].correctIndex)
+      if (index == widget.category.quiz[_currentQuestion].correctIndex) {
         _score++;
+      }
     });
     Future.delayed(const Duration(milliseconds: 800), () {
       if (!mounted) return;
@@ -237,7 +238,7 @@ class _QuizScreenState extends State<QuizScreen> {
                   ),
                 ),
               );
-            }).toList(),
+            }),
             const SizedBox(height: 20),
           ],
         ),

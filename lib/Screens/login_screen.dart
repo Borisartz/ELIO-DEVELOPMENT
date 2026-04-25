@@ -48,8 +48,9 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) => HomeShell(auth: widget.auth),
-        transitionsBuilder: (_, anim, __, child) =>
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            HomeShell(auth: widget.auth),
+        transitionsBuilder: (context, anim, secondaryAnimation, child) =>
             FadeTransition(opacity: anim, child: child),
         transitionDuration: const Duration(milliseconds: 500),
       ),

@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'login_screen.dart';
 import 'home_screen.dart';
 import 'tabs/elearning_tab.dart';
+import 'tabs/config_tab.dart';
 
 class HomeShell extends StatefulWidget {
   final FirebaseAuth auth;
@@ -19,7 +20,7 @@ class _HomeShellState extends State<HomeShell> {
   late final List<Widget> _screens = [
     HomeScreen(auth: widget.auth),
     const ElearningTab(),
-    const PlaceholderScreen(title: 'Config', icon: Icons.wifi_rounded),
+    const ConfigTab(),
     const PlaceholderScreen(title: 'Control', icon: Icons.gamepad_rounded),
   ];
 
@@ -71,11 +72,12 @@ class _HomeShellState extends State<HomeShell> {
                                   fit: BoxFit.cover,
                                   width: 52,
                                   height: 52,
-                                  errorBuilder: (_, __, ___) => const Icon(
-                                    Icons.person,
-                                    size: 28,
-                                    color: Colors.white,
-                                  ),
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Icon(
+                                        Icons.person,
+                                        size: 28,
+                                        color: Colors.white,
+                                      ),
                                 ),
                               )
                             : const Icon(

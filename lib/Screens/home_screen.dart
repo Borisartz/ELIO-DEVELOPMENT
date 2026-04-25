@@ -81,8 +81,8 @@ class HomeScreen extends StatelessWidget {
                                   color: Color(0xFF1C2833),
                                 ),
                               ),
-                              const SizedBox(height: 2),
-                              const Text(
+                              SizedBox(height: 2),
+                              Text(
                                 'Not connected yet',
                                 style: TextStyle(
                                   fontSize: 12,
