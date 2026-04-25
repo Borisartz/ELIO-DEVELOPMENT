@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'login_screen.dart';
-import 'home_screen.dart';
+import 'home_shell.dart';
 
 class SplashScreen extends StatefulWidget {
   final FirebaseAuth auth;
@@ -45,14 +45,15 @@ class _SplashScreenState extends State<SplashScreen>
     Future.delayed(const Duration(milliseconds: 2500), _navigate);
   }
 
-    void _navigate() {
+  void _navigate() {
     final user = widget.auth.currentUser;
     if (!mounted) return;
 
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (_, _, _) =>
-            user != null ? const HomeScreen() : LoginScreen(auth: widget.auth),
+        pageBuilder: (_, _, _) => user != null
+            ? HomeShell(auth: widget.auth)
+            : LoginScreen(auth: widget.auth),
         transitionsBuilder: (_, anim, _, child) =>
             FadeTransition(opacity: anim, child: child),
         transitionDuration: const Duration(milliseconds: 600),
