@@ -1,24 +1,25 @@
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/config_model.dart';
 
 class ConfigService {
   static const _key = 'elio_esp_config';
+  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
   Future<void> saveConfig(EspConfig config) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_key, jsonEncode(config.toMap()));
+    await _secureStorage.write(
+      key: _key,
+      value: jsonEncode(config.toMap()),
+    );
   }
 
   Future<EspConfig> loadConfig() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_key);
+    final raw = await _secureStorage.read(key: _key);
     if (raw == null) return const EspConfig();
     return EspConfig.fromMap(jsonDecode(raw));
   }
 
   Future<void> clearConfig() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_key);
+    await _secureStorage.delete(key: _key);
   }
 }
