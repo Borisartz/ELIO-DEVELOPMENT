@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'home_screen.dart';
+import 'home_shell.dart';
 
 class LoginScreen extends StatefulWidget {
   final FirebaseAuth auth;
@@ -48,8 +48,9 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) => const HomeScreen(),
-        transitionsBuilder: (_, anim, __, child) =>
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            HomeShell(auth: widget.auth),
+        transitionsBuilder: (context, anim, secondaryAnimation, child) =>
             FadeTransition(opacity: anim, child: child),
         transitionDuration: const Duration(milliseconds: 500),
       ),
@@ -74,9 +75,10 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Text(
                 message,
                 style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500),
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ],
@@ -313,10 +315,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   _isSignUp
                       ? 'Join ELIO to start sorting'
                       : 'Sign in to control ELIO',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: _textMuted,
-                  ),
+                  style: const TextStyle(fontSize: 14, color: _textMuted),
                 ),
 
                 const SizedBox(height: 28),
@@ -334,8 +333,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.error_outline,
-                            color: Color(0xFFE74C3C), size: 20),
+                        const Icon(
+                          Icons.error_outline,
+                          color: Color(0xFFE74C3C),
+                          size: 20,
+                        ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
@@ -349,8 +351,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         GestureDetector(
                           onTap: () => setState(() => _errorMessage = null),
-                          child: const Icon(Icons.close,
-                              size: 16, color: Color(0xFFE74C3C)),
+                          child: const Icon(
+                            Icons.close,
+                            size: 16,
+                            color: Color(0xFFE74C3C),
+                          ),
                         ),
                       ],
                     ),
@@ -423,8 +428,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         prefix: Icons.lock_outline,
                         obscure: _obscurePassword,
                         suffixIcon: IconButton(
-                          onPressed: () =>
-                              setState(() => _obscurePassword = !_obscurePassword),
+                          onPressed: () => setState(
+                            () => _obscurePassword = !_obscurePassword,
+                          ),
                           icon: Icon(
                             _obscurePassword
                                 ? Icons.visibility_outlined
@@ -443,7 +449,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: TextButton(
                             onPressed: _isLoading ? null : _resetPassword,
                             style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
                               minimumSize: Size.zero,
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
@@ -464,12 +472,15 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: ElevatedButton(
                           onPressed: _isLoading
                               ? null
-                              : (_isSignUp ? _signUpWithEmail : _signInWithEmail),
+                              : (_isSignUp
+                                    ? _signUpWithEmail
+                                    : _signInWithEmail),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _primary,
                             foregroundColor: Colors.white,
-                            disabledBackgroundColor:
-                                _primary.withValues(alpha: 0.5),
+                            disabledBackgroundColor: _primary.withValues(
+                              alpha: 0.5,
+                            ),
                             elevation: 0,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14),
@@ -507,24 +518,21 @@ class _LoginScreenState extends State<LoginScreen> {
                       _isSignUp
                           ? 'Already have an account? '
                           : "Don't have an account? ",
-                      style:
-                          const TextStyle(color: _textMuted, fontSize: 14),
+                      style: const TextStyle(color: _textMuted, fontSize: 14),
                     ),
                     TextButton(
                       onPressed: _isLoading
                           ? null
                           : () => setState(() {
-                                _isSignUp = !_isSignUp;
-                                _errorMessage = null;
-                              }),
+                              _isSignUp = !_isSignUp;
+                              _errorMessage = null;
+                            }),
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 4),
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                      child: Text(
-                        _isSignUp ? 'Sign In' : 'Sign Up',
-                      ),
+                      child: Text(_isSignUp ? 'Sign In' : 'Sign Up'),
                     ),
                   ],
                 ),
@@ -541,26 +549,20 @@ class _LoginScreenState extends State<LoginScreen> {
                         'Continue as Guest',
                         style: TextStyle(fontSize: 14),
                       ),
-                      style: TextButton.styleFrom(
-                        foregroundColor: _textMuted,
-                      ),
+                      style: TextButton.styleFrom(foregroundColor: _textMuted),
                     ),
                     const SizedBox(height: 4),
                     const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.info_outline,
-                            size: 13, color: _textHint),
+                        Icon(Icons.info_outline, size: 13, color: _textHint),
                         SizedBox(width: 4),
                         SizedBox(
                           width: 240,
                           child: Text(
                             'Guest mode saves data locally only. Sign in to sync progress.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: _textHint,
-                              fontSize: 11,
-                            ),
+                            style: TextStyle(color: _textHint, fontSize: 11),
                           ),
                         ),
                       ],
@@ -616,16 +618,17 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide:
-              const BorderSide(color: Color(0xFFE74C3C), width: 1.5),
+          borderSide: const BorderSide(color: Color(0xFFE74C3C), width: 1.5),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide:
-              const BorderSide(color: Color(0xFFE74C3C), width: 2),
+          borderSide: const BorderSide(color: Color(0xFFE74C3C), width: 2),
         ),
-        labelStyle:
-            const TextStyle(color: _textMuted, fontSize: 14, fontWeight: FontWeight.w500),
+        labelStyle: const TextStyle(
+          color: _textMuted,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
         hintStyle: const TextStyle(color: _textHint, fontSize: 15),
         errorStyle: const TextStyle(color: Color(0xFFE74C3C), fontSize: 12),
       ),
@@ -687,29 +690,42 @@ class _GoogleGPainter extends CustomPainter {
     p.color = const Color(0xFF4285F4);
     canvas.drawPath(
       Path()
-        ..moveTo(0, 0)..lineTo(s * 0.5, 0)..lineTo(s * 0.5, s * 0.5)
-        ..lineTo(0, s * 0.5)..close(),
+        ..moveTo(0, 0)
+        ..lineTo(s * 0.5, 0)
+        ..lineTo(s * 0.5, s * 0.5)
+        ..lineTo(0, s * 0.5)
+        ..close(),
       p,
     );
     p.color = const Color(0xFFEA4335);
     canvas.drawPath(
       Path()
-        ..moveTo(s * 0.5, 0)..lineTo(s, 0)..lineTo(s, s * 0.5)
-        ..lineTo(s * 0.5, s * 0.5)..close(),
+        ..moveTo(s * 0.5, 0)
+        ..lineTo(s, 0)
+        ..lineTo(s, s * 0.5)
+        ..lineTo(s * 0.5, s * 0.5)
+        ..close(),
       p,
     );
     p.color = const Color(0xFFFBBC05);
     canvas.drawPath(
       Path()
-        ..moveTo(0, s * 0.5)..lineTo(s * 0.5, s * 0.5)..lineTo(s, s * 0.5)
-        ..lineTo(s, s)..lineTo(0, s)..close(),
+        ..moveTo(0, s * 0.5)
+        ..lineTo(s * 0.5, s * 0.5)
+        ..lineTo(s, s * 0.5)
+        ..lineTo(s, s)
+        ..lineTo(0, s)
+        ..close(),
       p,
     );
     p.color = const Color(0xFF34A853);
     canvas.drawPath(
       Path()
-        ..moveTo(0, s * 0.5)..lineTo(s * 0.5, s * 0.5)..lineTo(s * 0.5, s)
-        ..lineTo(0, s)..close(),
+        ..moveTo(0, s * 0.5)
+        ..lineTo(s * 0.5, s * 0.5)
+        ..lineTo(s * 0.5, s)
+        ..lineTo(0, s)
+        ..close(),
       p,
     );
   }
