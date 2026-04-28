@@ -3,7 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'login_screen.dart';
 import 'home_screen.dart';
 import 'tabs/elearning_tab.dart';
-import 'tabs/config_tab.dart';
+import 'config_screen.dart';
+import 'control_screen.dart';
 
 class HomeShell extends StatefulWidget {
   final FirebaseAuth auth;
@@ -20,8 +21,8 @@ class _HomeShellState extends State<HomeShell> {
   late final List<Widget> _screens = [
     HomeScreen(auth: widget.auth),
     const ElearningTab(),
-    const ConfigTab(),
-    const PlaceholderScreen(title: 'Control', icon: Icons.gamepad_rounded),
+    const ConfigScreen(),
+    const ControlScreen(),
   ];
 
   void _onDrawerTap(int index) {
@@ -158,7 +159,7 @@ class _HomeShellState extends State<HomeShell> {
               icon: Icons.wifi_outlined,
               activeIcon: Icons.wifi,
               title: 'Configure',
-              subtitle: 'Setup ESP32 & MQTT',
+              subtitle: 'Setup ESP32 WebSocket',
               isActive: _currentIndex == 2,
               onTap: () => _onDrawerTap(2),
             ),

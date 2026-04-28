@@ -1,0 +1,184 @@
+ELIO ESP32-CAM HTTP bridge sketch
+Paste this into Arduino IDE as a .ino file.
+
+Goal:
+- Let the Flutter app connect to ESP32-CAM over HTTP
+- Expose GET /status for the app test button
+- Expose POST /command for future robot control
+- Work in AP mode by default at 192.168.4.1:80
+
+Recommended board:
+- AI Thinker ESP32-CAM
+
+------------------------------------------------------------
+
+#include <WiFi.h>
+#include <WebServer.h>
+
+// Optional STA credentials. Leave empty if you only want AP mode.
+const char* STA_SSID = "";
+const char* STA_PASS = "";
+
+// AP mode credentials. Flutter config default should use 192.168.4.1:80.
+const char* AP_SSID = "ELIO-ESP32CAM";
+const char* AP_PASS = "elio12345";  // minimum 8 characters
+
+WebServer server(80);
+
+String getTimestamp() {
+  return "1970-01-01T00:00:00Z";
+}
+
+void addCors() {
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.sendHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  server.sendHeader("Access-Control-Allow-Headers", "Content-Type");
+}
+
+void sendJson(int code, const String& success, const String& message) {
+  addCors();
+  String json = "{";
+  json += "\"success\":" + success + ",";
+  json += "\"message\":\"" + message + "\",";
+  json += "\"timestamp\":\"" + getTimestamp() + "\"";
+  json += "}";
+  server.send(code, "application/json", json);
+}
+
+void handleRoot() {
+  addCors();
+  server.send(200, "text/plain", "ELIO ESP32-CAM HTTP running");
+}
+
+void handleStatus() {
+  sendJson(200, "true", "ESP32-CAM OK");
+}
+
+void handleCommand() {
+  if (!server.hasArg("plain")) {
+    sendJson(400, "false", "No body");
+    return;
+  }
+
+  String body = server.arg("plain");
+  Serial.println("[COMMAND RECEIVED]");
+  Serial.println(body);
+
+  String action = "UNKNOWN";
+  if (body.indexOf("FORWARD") != -1 || body.indexOf("move_forward") != -1) {
+    action = "FORWARD";
+  } else if (body.indexOf("BACKWARD") != -1 || body.indexOf("move_backward") != -1) {
+    action = "BACKWARD";
+  } else if (body.indexOf("LEFT") != -1 || body.indexOf("turn_left") != -1) {
+    action = "LEFT";
+  } else if (body.indexOf("RIGHT") != -1 || body.indexOf("turn_right") != -1) {
+    action = "RIGHT";
+  } else if (body.indexOf("STOP") != -1 || body.indexOf("stop") != -1) {
+    action = "STOP";
+  }
+
+  // Later you can forward this to the slave ESP32 over UART.
+  // Serial2.println(action);
+
+  String message = "Command executed: " + action;
+  sendJson(200, "true", message);
+}
+
+void handleNotFound() {
+  sendJson(404, "false", "Not found");
+}
+
+void handleOptions() {
+  addCors();
+  server.send(204);
+}
+
+void startAP() {
+  WiFi.softAP(AP_SSID, AP_PASS);
+
+  Serial.println("[AP] Started");
+  Serial.print("[AP] IP: ");
+  Serial.println(WiFi.softAPIP());
+}
+
+void connectSTA() {
+  if (String(STA_SSID).length() == 0) {
+    Serial.println("[STA] Skipped");
+    return;
+  }
+
+  WiFi.begin(STA_SSID, STA_PASS);
+  Serial.println("[STA] Connecting...");
+
+  unsigned long start = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - start < 10000) {
+    delay(300);
+    Serial.print(".");
+  }
+  Serial.println();
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("[STA] Connected");
+    Serial.println(WiFi.localIP());
+  } else {
+    Serial.println("[STA] Failed");
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  delay(500);
+
+  WiFi.mode(WIFI_AP_STA);
+
+  startAP();
+  connectSTA();
+
+  server.on("/", HTTP_GET, handleRoot);
+  server.on("/status", HTTP_GET, handleStatus);
+  server.on("/command", HTTP_POST, handleCommand);
+  server.on("/", HTTP_OPTIONS, handleOptions);
+  server.on("/status", HTTP_OPTIONS, handleOptions);
+  server.on("/command", HTTP_OPTIONS, handleOptions);
+  server.onNotFound(handleNotFound);
+
+  server.begin();
+
+  Serial.println("[HTTP] Server started");
+  Serial.println("Test URL: http://192.168.4.1/status");
+}
+
+void loop() {
+  server.handleClient();
+}
+
+------------------------------------------------------------
+
+Arduino IDE upload notes:
+1) Board: AI Thinker ESP32-CAM
+2) Usual settings:
+   - Flash Mode: QIO
+   - Flash Frequency: 40MHz
+   - Partition Scheme: Huge APP or default
+   - Upload Speed: 115200
+3) Upload wiring with FTDI:
+   - U0R -> TX
+   - U0T -> RX
+   - GND -> GND
+   - 5V -> 5V
+   - IO0 -> GND only while uploading
+4) After upload, remove IO0 from GND and reset the board.
+5) Open Serial Monitor at 115200 and verify:
+   - [AP] IP: 192.168.4.1
+   - [HTTP] Server started
+
+Flutter app should use:
+- IP: 192.168.4.1
+- Port: 80
+- Test endpoint: GET /status
+
+Recommended future command flow:
+- App POST /command with JSON body
+- ESP32-CAM validates command
+- ESP32-CAM forwards to slave ESP32 over UART
+- ESP32-CAM returns structured ACK to the app

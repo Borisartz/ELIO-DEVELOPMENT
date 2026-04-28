@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+
+import 'package:elio/providers/auth_provider.dart';
+
 import 'home_shell.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -18,6 +21,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
+  final _emailFocusNode = FocusNode();
+  final _passwordFocusNode = FocusNode();
   bool _obscurePassword = true;
 
   // ── State ─────────────────────────────────────────────────
@@ -40,6 +45,8 @@ class _LoginScreenState extends State<LoginScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _nameController.dispose();
+    _emailFocusNode.dispose();
+    _passwordFocusNode.dispose();
     super.dispose();
   }
 
@@ -95,7 +102,7 @@ class _LoginScreenState extends State<LoginScreen> {
   String _mapError(String code) {
     switch (code) {
       case 'user-not-found':
-        return 'No account found with this email.';
+        return 'No account found with this email or username.';
       case 'wrong-password':
         return 'Incorrect password.';
       case 'email-already-in-use':
@@ -131,13 +138,13 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   // ── EMAIL SIGN IN ─────────────────────────────────────────
-  Future<void> _signInWithEmail() async {
+  Future<void> _handleEmailAuth() async {
     if (!_formKey.currentState!.validate()) return;
     _setLoading(true);
     try {
-      await widget.auth.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
+      await widget.auth.signInWithEmailOrUsername(
+        _emailController.text,
+        _passwordController.text,
       );
       _showSnack('Welcome back!');
       _goHome();
@@ -234,9 +241,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // ── Validators ────────────────────────────────────────────
   String? _emailValidator(String? v) {
-    if (v == null || v.trim().isEmpty) return 'Email is required';
-    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v.trim())) {
-      return 'Enter a valid email';
+    if (v == null || v.trim().isEmpty) {
+      return _isSignUp ? 'Email is required' : 'Email or username is required';
+    }
+
+    final value = v.trim();
+    if (_isSignUp || value.contains('@')) {
+      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+        return 'Enter a valid email';
+      }
     }
     return null;
   }
@@ -320,49 +333,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 28),
 
-                // ── Error Banner ─────────────────────────
-                if (_errorMessage != null) ...[
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE74C3C).withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: const Color(0xFFE74C3C).withValues(alpha: 0.2),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.error_outline,
-                          color: Color(0xFFE74C3C),
-                          size: 20,
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            _errorMessage!,
-                            style: const TextStyle(
-                              color: Color(0xFFE74C3C),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () => setState(() => _errorMessage = null),
-                          child: const Icon(
-                            Icons.close,
-                            size: 16,
-                            color: Color(0xFFE74C3C),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
-
                 // ── Google Button ────────────────────────
                 _buildGoogleButton(),
 
@@ -412,10 +382,19 @@ class _LoginScreenState extends State<LoginScreen> {
                       _buildTextField(
                         controller: _emailController,
                         validator: _emailValidator,
-                        label: 'Email',
-                        hint: 'you@example.com',
+                        label: _isSignUp ? 'Email' : 'Email / Username',
+                        hint: _isSignUp
+                            ? 'you@example.com'
+                            : 'you@example.com or username',
                         prefix: Icons.mail_outline,
                         keyboardType: TextInputType.emailAddress,
+                        focusNode: _emailFocusNode,
+                        textInputAction: TextInputAction.next,
+                        onFieldSubmitted: (_) {
+                          FocusScope.of(
+                            context,
+                          ).requestFocus(_passwordFocusNode);
+                        },
                       ),
                       const SizedBox(height: 14),
 
@@ -427,19 +406,82 @@ class _LoginScreenState extends State<LoginScreen> {
                         hint: 'Enter your password',
                         prefix: Icons.lock_outline,
                         obscure: _obscurePassword,
-                        suffixIcon: IconButton(
-                          onPressed: () => setState(
-                            () => _obscurePassword = !_obscurePassword,
-                          ),
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                            size: 20,
-                            color: _textHint,
+                        focusNode: _passwordFocusNode,
+                        textInputAction: TextInputAction.done,
+                        onFieldSubmitted: (_) {
+                          if (_isSignUp) {
+                            _signUpWithEmail();
+                          } else {
+                            _handleEmailAuth();
+                          }
+                        },
+                        suffixIcon: Focus(
+                          canRequestFocus: false,
+                          skipTraversal: true,
+                          descendantsAreFocusable: false,
+                          child: IconButton(
+                            onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword,
+                            ),
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                              size: 20,
+                              color: _textHint,
+                            ),
                           ),
                         ),
                       ),
+
+                      if (_errorMessage != null) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: const Color(
+                              0xFFE74C3C,
+                            ).withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(
+                                0xFFE74C3C,
+                              ).withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                color: Color(0xFFE74C3C),
+                                size: 20,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  _errorMessage!,
+                                  style: const TextStyle(
+                                    color: Color(0xFFE74C3C),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () =>
+                                    setState(() => _errorMessage = null),
+                                child: const Icon(
+                                  Icons.close,
+                                  size: 16,
+                                  color: Color(0xFFE74C3C),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
 
                       // Forgot password (sign in only)
                       if (!_isSignUp) ...[
@@ -474,7 +516,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ? null
                               : (_isSignUp
                                     ? _signUpWithEmail
-                                    : _signInWithEmail),
+                                    : _handleEmailAuth),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _primary,
                             foregroundColor: Colors.white,
@@ -588,14 +630,19 @@ class _LoginScreenState extends State<LoginScreen> {
     required IconData prefix,
     bool obscure = false,
     TextInputType? keyboardType,
+    TextInputAction? textInputAction,
+    FocusNode? focusNode,
+    ValueChanged<String>? onFieldSubmitted,
     Widget? suffixIcon,
   }) {
     return TextFormField(
       controller: controller,
       validator: validator,
+      focusNode: focusNode,
       obscureText: obscure,
       keyboardType: keyboardType,
-      textInputAction: TextInputAction.next,
+      textInputAction: textInputAction ?? TextInputAction.next,
+      onFieldSubmitted: onFieldSubmitted,
       style: const TextStyle(fontSize: 15, color: _textDark),
       decoration: InputDecoration(
         filled: true,
@@ -643,6 +690,7 @@ class _LoginScreenState extends State<LoginScreen> {
       child: OutlinedButton(
         onPressed: _isLoading ? null : _signInWithGoogle,
         style: OutlinedButton.styleFrom(
+          backgroundColor: _surface,
           foregroundColor: _textDark,
           side: const BorderSide(color: _border, width: 1.5),
           shape: RoundedRectangleBorder(
@@ -655,81 +703,15 @@ class _LoginScreenState extends State<LoginScreen> {
                 height: 22,
                 child: CircularProgressIndicator(strokeWidth: 2.5),
               )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Programmatic Google "G" icon
-                  SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CustomPaint(painter: _GoogleGPainter()),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Continue with Google',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: _textDark,
-                    ),
-                  ),
-                ],
+            : const Text(
+                'Continue with Google',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: _textDark,
+                ),
               ),
       ),
     );
   }
-}
-
-// ── Google "G" icon painter (no asset needed) ────────────────
-class _GoogleGPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final s = size.width;
-    final p = Paint()..style = PaintingStyle.fill;
-
-    p.color = const Color(0xFF4285F4);
-    canvas.drawPath(
-      Path()
-        ..moveTo(0, 0)
-        ..lineTo(s * 0.5, 0)
-        ..lineTo(s * 0.5, s * 0.5)
-        ..lineTo(0, s * 0.5)
-        ..close(),
-      p,
-    );
-    p.color = const Color(0xFFEA4335);
-    canvas.drawPath(
-      Path()
-        ..moveTo(s * 0.5, 0)
-        ..lineTo(s, 0)
-        ..lineTo(s, s * 0.5)
-        ..lineTo(s * 0.5, s * 0.5)
-        ..close(),
-      p,
-    );
-    p.color = const Color(0xFFFBBC05);
-    canvas.drawPath(
-      Path()
-        ..moveTo(0, s * 0.5)
-        ..lineTo(s * 0.5, s * 0.5)
-        ..lineTo(s, s * 0.5)
-        ..lineTo(s, s)
-        ..lineTo(0, s)
-        ..close(),
-      p,
-    );
-    p.color = const Color(0xFF34A853);
-    canvas.drawPath(
-      Path()
-        ..moveTo(0, s * 0.5)
-        ..lineTo(s * 0.5, s * 0.5)
-        ..lineTo(s * 0.5, s)
-        ..lineTo(0, s)
-        ..close(),
-      p,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
