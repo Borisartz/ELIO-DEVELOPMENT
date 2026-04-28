@@ -47,3 +47,35 @@ Phase 3 — Home + Navigation      ⬜ Todo
 Phase 4 — E-Learning Screen      ⬜ Todo
 Phase 5 — ESP32-CAM Config       ⬜ Todo
 Phase 6 — D-Pad + Camera         ⬜ Todo
+
+---
+
+## Firebase Environment Configuration
+
+Firebase initialization is environment-variable driven to avoid storing hardcoded config values in source files.
+
+### Files
+
+- `.env.example` (committed template)
+- `.env.dev` (local development values)
+- `.env.prod` (local/CI production values)
+
+### Setup
+
+1. Copy `.env.example` to `.env.dev` and/or `.env.prod`.
+2. Fill in Firebase values.
+3. Run the app with an environment selector:
+
+```bash
+# Default (dev)
+flutter run
+
+# Explicit prod
+flutter run --dart-define=ELIO_ENV=prod
+```
+
+### Notes
+
+- `.env` files are ignored by git except `.env.example`.
+- Firebase is initialized from `lib/firebase_options_loader.dart`.
+- Missing required Firebase keys fail fast at startup with a clear error.

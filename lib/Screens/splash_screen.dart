@@ -83,19 +83,7 @@ class _SplashScreenState extends State<SplashScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 110,
-                height: 110,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(28),
-                ),
-                child: const Icon(
-                  Icons.recycling_rounded,
-                  size: 64,
-                  color: Colors.white,
-                ),
-              ),
+              Image.asset('assets/icon/ELIO_ICON.png', fit: BoxFit.contain),
               const SizedBox(height: 24),
               const Text(
                 'ELIO',

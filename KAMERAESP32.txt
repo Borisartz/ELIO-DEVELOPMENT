@@ -1,0 +1,197 @@
+/*
+ * ELIO ESP32-CAM WebSocket Bridge (FIXED - AI Thinker)
+ */
+
+#include <WiFi.h>
+#include <esp_camera.h>
+#include <WebSocketsServer.h>
+
+// ================= WIFI =================
+const char* STA_SSID = "";      
+const char* STA_PASS = "";
+
+const char* AP_SSID = "ELIO-ESP32CAM";
+const char* AP_PASS = "elio12345";
+
+// ================= WEBSOCKET =================
+WebSocketsServer webSocket = WebSocketsServer(81);
+
+// ================= CAMERA CONFIG =================
+camera_config_t config;
+
+// ================= STREAM =================
+unsigned long lastFrameTime = 0;
+const int FRAME_INTERVAL = 66; // ~15 FPS
+
+// ================= COMMAND =================
+void handleCommand(String jsonStr) {
+  Serial.println("[CMD] " + jsonStr);
+
+  if (jsonStr.indexOf("\"cmd\":\"stop\"") >= 0) {
+    Serial.println("[ACTION] STOP");
+    return;
+  }
+
+  if (jsonStr.indexOf("\"cmd\":\"motor\"") >= 0) {
+    int leftIndex = jsonStr.indexOf("\"left\":") + 7;
+    int rightIndex = jsonStr.indexOf("\"right\":") + 8;
+
+    if (leftIndex > 0 && rightIndex > 0) {
+      int leftSpeed = jsonStr.substring(leftIndex, jsonStr.indexOf(",", leftIndex)).toInt();
+      int rightSpeed = jsonStr.substring(rightIndex, jsonStr.indexOf("}", rightIndex)).toInt();
+
+      Serial.printf("[ACTION] MOTOR L:%d R:%d\n", leftSpeed, rightSpeed);
+    }
+    return;
+  }
+
+  if (jsonStr.indexOf("\"cmd\":\"servo\"") >= 0) {
+    int partIndex = jsonStr.indexOf("\"part\":\"") + 8;
+    int valIndex = jsonStr.indexOf("\"val\":") + 6;
+
+    if (partIndex > 0 && valIndex > 0) {
+      String part = jsonStr.substring(partIndex, jsonStr.indexOf("\"", partIndex));
+      int val = jsonStr.substring(valIndex, jsonStr.indexOf("}", valIndex)).toInt();
+
+      Serial.printf("[ACTION] SERVO %s: %d\n", part.c_str(), val);
+    }
+    return;
+  }
+}
+
+// ================= WEBSOCKET EVENTS =================
+void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
+  switch(type) {
+    case WStype_CONNECTED:
+      Serial.printf("[%u] Connected\n", num);
+      break;
+
+    case WStype_DISCONNECTED:
+      Serial.printf("[%u] Disconnected\n", num);
+      break;
+
+    case WStype_TEXT:
+      handleCommand(String((char*)payload));
+      break;
+  }
+}
+
+// ================= WIFI =================
+void startAP() {
+  WiFi.softAP(AP_SSID, AP_PASS);
+  Serial.println("[AP] Started");
+  Serial.println(WiFi.softAPIP());
+}
+
+void connectSTA() {
+  if (String(STA_SSID).length() == 0) return;
+
+  WiFi.begin(STA_SSID, STA_PASS);
+  Serial.print("[STA] Connecting");
+
+  unsigned long start = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - start < 10000) {
+    delay(300);
+    Serial.print(".");
+  }
+
+  Serial.println();
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("[STA] Connected");
+    Serial.println(WiFi.localIP());
+  } else {
+    Serial.println("[STA] Failed");
+  }
+}
+
+// ================= SETUP =================
+void setup() {
+  Serial.begin(115200);
+  delay(500);
+
+  Serial.println("\n[BOOT] Starting...");
+
+  // ===== CAMERA CONFIG (AI THINKER) =====
+  config.ledc_channel = LEDC_CHANNEL_0;
+  config.ledc_timer = LEDC_TIMER_0;
+
+  config.pin_d0 = 5;
+  config.pin_d1 = 18;
+  config.pin_d2 = 19;
+  config.pin_d3 = 21;
+  config.pin_d4 = 36;
+  config.pin_d5 = 39;
+  config.pin_d6 = 34;
+  config.pin_d7 = 35;
+
+  config.pin_xclk = 0;
+  config.pin_pclk = 22;
+  config.pin_vsync = 25;
+  config.pin_href = 23;
+
+  config.pin_sscb_sda = 26;  // 🔥 FIX I2C
+  config.pin_sscb_scl = 27;  // 🔥 FIX I2C
+
+  config.pin_pwdn = 32;
+  config.pin_reset = -1;
+
+  config.xclk_freq_hz = 20000000;
+  config.pixel_format = PIXFORMAT_JPEG;
+
+  config.frame_size = FRAMESIZE_QVGA;
+  config.jpeg_quality = 12;
+  config.fb_count = 2;
+
+  config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
+
+  // ===== INIT CAMERA =====
+  Serial.println("[CAM] Initializing...");
+  esp_err_t err = esp_camera_init(&config);
+
+  if (err != ESP_OK) {
+    Serial.printf("[CAM] FAILED: 0x%x\n", err);
+    return;
+  }
+
+  Serial.println("[CAM] OK");
+
+  // ===== WIFI =====
+  WiFi.mode(WIFI_AP_STA);
+  startAP();
+  connectSTA();
+
+  // ===== WEBSOCKET =====
+  webSocket.begin();
+  webSocket.onEvent(onWebSocketEvent);
+
+  Serial.println("[WS] Started on port 81");
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.print("FLUTTER IP: ");
+    Serial.println(WiFi.localIP());
+  } else {
+    Serial.print("FLUTTER IP: ");
+    Serial.println(WiFi.softAPIP());
+  }
+}
+
+// ================= LOOP =================
+void loop() {
+  webSocket.loop();
+
+  unsigned long now = millis();
+
+  if (now - lastFrameTime >= FRAME_INTERVAL) {
+    lastFrameTime = now;
+
+    if (webSocket.connectedClients() > 0) {
+      camera_fb_t * fb = esp_camera_fb_get();
+
+      if (fb) {
+        webSocket.broadcastBIN(fb->buf, fb->len);
+        esp_camera_fb_return(fb);
+      }
+    }
+  }
+}

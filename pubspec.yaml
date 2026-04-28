@@ -14,13 +14,18 @@ dependencies:
   # Firebase
   firebase_core: ^4.7.0
   firebase_auth: ^6.4.0
+  cloud_firestore: ^6.3.0
   google_sign_in: ^6.2.1
 
   # UI
   flutter_svg: ^2.0.10
   cupertino_icons: ^1.0.8
-  mqtt_client: ^10.11.11
+  web_socket_channel: ^2.4.0
+  google_fonts: ^6.1.0
   shared_preferences: ^2.5.5
+  flutter_native_splash: ^2.3.2
+  flutter_riverpod: ^2.4.0
+  flutter_dotenv: ^5.2.1
 
 dev_dependencies:
   flutter_test:
@@ -28,9 +33,32 @@ dev_dependencies:
   firebase_auth_mocks: ^0.15.1
   fake_cloud_firestore: ^4.1.0+1
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.13.1
 
 flutter:
   uses-material-design: true
 
   assets:
+    - .env.dev
+    - .env.prod
+    - .env.example
     - assets/images/
+    - assets/icon/
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/ELIO_ICON.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#1D9E75"
+  adaptive_icon_foreground: "assets/icon/ELIO_ICON.png"
+
+flutter_native_splash:
+  color: "#1D9E75"
+  image: "assets/icon/ELIO_ICON.png"
+  android_12:
+    color: "#1D9E75"
+    image: "assets/icon/ELIO_ICON.png"
+    branding_mode: "contain"
+  ios: true
+  web: false
