@@ -16,12 +16,13 @@ class _WasteDetailScreenState extends ConsumerState<WasteDetailScreen> {
   @override
   void initState() {
     super.initState();
-    // Fire-and-forget: mark this lesson as viewed in the progress tracker.
-    Future.microtask(
-      () => ref
+    // Schedule after the first frame so the widget tree is fully mounted.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref
           .read(learningProgressProvider.notifier)
-          .markLessonViewed(widget.category.id),
-    );
+          .markLessonViewed(widget.category.id);
+    });
   }
 
   @override

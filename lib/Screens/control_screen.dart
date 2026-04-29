@@ -14,6 +14,7 @@ class ControlScreen extends ConsumerStatefulWidget {
 
 class _ControlScreenState extends ConsumerState<ControlScreen> {
   Uint8List? _currentFrame;
+  ProviderSubscription<AsyncValue<Uint8List>>? _frameSubscription;
 
   static const Color backgroundMain = Color(0xFFF5F7F6);
   static const Color textPrimary = Color(0xFF1C2833);
@@ -26,12 +27,20 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
   @override
   void initState() {
     super.initState();
+    // Subscribe to camera frames outside of build to avoid re-registering
+    // the listener on every rebuild.
+    _frameSubscription = ref.listenManual(robotFrameProvider, (_, next) {
+      if (next.hasValue && mounted) {
+        setState(() => _currentFrame = next.value);
+      }
+    });
     // Connect to the robot when the control screen opens.
     ref.read(robotControlProvider.notifier).connect();
   }
 
   @override
   void dispose() {
+    _frameSubscription?.close();
     // Disconnect when leaving the control screen.
     ref.read(robotControlProvider.notifier).disconnect();
     super.dispose();
@@ -39,13 +48,6 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Update local frame state whenever a new camera frame arrives.
-    ref.listen(robotFrameProvider, (_, next) {
-      if (next.hasValue && mounted) {
-        setState(() => _currentFrame = next.value);
-      }
-    });
-
     final robotState = ref.watch(robotControlProvider);
     final status =
         ref.watch(robotStatusProvider).value ?? 'Disconnected';

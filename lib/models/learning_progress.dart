@@ -28,13 +28,17 @@ class CategoryProgress {
     this.lastAccessed,
   });
 
+  static const double _lessonViewWeight = 0.4;
+  static const double _quizScoreWeight = 0.6;
+
   /// 0.0 – 1.0 composite score:
-  ///   40 % for viewing the lesson, 60 % for best quiz result.
+  ///   [_lessonViewWeight] for viewing the lesson,
+  ///   [_quizScoreWeight] × (bestScore / totalQuestions) for the quiz.
   double get progressPercentage {
-    if (totalQuestions == 0) return lessonViewed ? 0.4 : 0.0;
+    if (totalQuestions == 0) return lessonViewed ? _lessonViewWeight : 0.0;
     final quizFraction = quizBestScore / totalQuestions;
-    final lessonFraction = lessonViewed ? 0.4 : 0.0;
-    return (lessonFraction + quizFraction * 0.6).clamp(0.0, 1.0);
+    final lessonFraction = lessonViewed ? _lessonViewWeight : 0.0;
+    return (lessonFraction + quizFraction * _quizScoreWeight).clamp(0.0, 1.0);
   }
 
   CategoryProgress copyWith({

@@ -130,8 +130,14 @@ class LearningProgressNotifier
     final isGuest = ref.read(isGuestProvider);
     try {
       await _service.save(progress, isGuest: isGuest);
-    } catch (_) {
-      // Progress is already updated in memory; persistence failure is non-fatal.
+    } catch (e, st) {
+      // Persistence failure is non-fatal: progress is already updated in
+      // memory and will be retried on the next mutation.
+      assert(() {
+        // ignore: avoid_print
+        print('[LearningProgressNotifier] persist failed: $e\n$st');
+        return true;
+      }());
     }
   }
 }
