@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/waste_category.dart';
+import '../../providers/learning_progress_provider.dart';
 import 'elearning/waste_detail_screen.dart';
 
-class ElearningTab extends StatelessWidget {
+class ElearningTab extends ConsumerWidget {
   const ElearningTab({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final progressAsync = ref.watch(learningProgressProvider);
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7F6),
       body: SafeArea(
@@ -96,7 +99,14 @@ class ElearningTab extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              ...wasteCategories.map((c) => _CategoryCard(category: c)),
+              ...wasteCategories.map(
+                (c) => _CategoryCard(
+                  category: c,
+                  progress: progressAsync.valueOrNull?.categories[c.id]
+                          ?.progressPercentage ??
+                      0.0,
+                ),
+              ),
               const SizedBox(height: 24),
               const Text(
                 'Quick Facts',
@@ -192,7 +202,8 @@ class ElearningTab extends StatelessWidget {
 
 class _CategoryCard extends StatelessWidget {
   final WasteCategory category;
-  const _CategoryCard({required this.category});
+  final double progress;
+  const _CategoryCard({required this.category, required this.progress});
 
   @override
   Widget build(BuildContext context) {
@@ -256,11 +267,7 @@ class _CategoryCard extends StatelessWidget {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
-                      value: category.id == 'organic'
-                          ? 0.85
-                          : category.id == 'inorganic'
-                          ? 0.70
-                          : 0.45,
+                      value: progress,
                       backgroundColor: color.withValues(alpha: 0.1),
                       valueColor: AlwaysStoppedAnimation(color),
                       minHeight: 4,

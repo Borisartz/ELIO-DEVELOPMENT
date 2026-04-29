@@ -1,14 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/waste_category.dart';
+import '../../../providers/learning_progress_provider.dart';
 import 'quiz_screen.dart';
 
-class WasteDetailScreen extends StatelessWidget {
+class WasteDetailScreen extends ConsumerStatefulWidget {
   final WasteCategory category;
   const WasteDetailScreen({super.key, required this.category});
 
   @override
+  ConsumerState<WasteDetailScreen> createState() => _WasteDetailScreenState();
+}
+
+class _WasteDetailScreenState extends ConsumerState<WasteDetailScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Schedule after the first frame so the widget tree is fully mounted.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref
+          .read(learningProgressProvider.notifier)
+          .markLessonViewed(widget.category.id);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final color = Color(int.parse(category.color));
+    final color = Color(int.parse(widget.category.color));
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7F6),
       body: CustomScrollView(
@@ -28,10 +47,10 @@ class WasteDetailScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const SizedBox(height: 40),
-                    Text(category.emoji, style: const TextStyle(fontSize: 60)),
+                    Text(widget.category.emoji, style: const TextStyle(fontSize: 60)),
                     const SizedBox(height: 8),
                     Text(
-                      category.title,
+                      widget.category.title,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 22,
@@ -83,7 +102,7 @@ class WasteDetailScreen extends StatelessWidget {
                     icon: Icons.info_outline,
                     color: color,
                     child: Text(
-                      category.description,
+                      widget.category.description,
                       style: const TextStyle(
                         fontSize: 14,
                         height: 1.6,
@@ -97,7 +116,7 @@ class WasteDetailScreen extends StatelessWidget {
                     icon: Icons.list_alt_outlined,
                     color: color,
                     child: Column(
-                      children: category.examples
+                      children: widget.category.examples
                           .map(
                             (e) => Padding(
                               padding: const EdgeInsets.symmetric(vertical: 4),
@@ -127,7 +146,7 @@ class WasteDetailScreen extends StatelessWidget {
                     icon: Icons.tips_and_updates_outlined,
                     color: color,
                     child: Column(
-                      children: category.tips
+                      children: widget.category.tips
                           .asMap()
                           .entries
                           .map(
@@ -203,7 +222,7 @@ class WasteDetailScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          category.aiInfo,
+                          widget.category.aiInfo,
                           style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 13,

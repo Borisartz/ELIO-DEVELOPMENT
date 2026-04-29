@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/waste_category.dart';
+import '../../../providers/learning_progress_provider.dart';
 
-class QuizScreen extends StatefulWidget {
+class QuizScreen extends ConsumerStatefulWidget {
   final WasteCategory category;
   const QuizScreen({super.key, required this.category});
 
   @override
-  State<QuizScreen> createState() => _QuizScreenState();
+  ConsumerState<QuizScreen> createState() => _QuizScreenState();
 }
 
-class _QuizScreenState extends State<QuizScreen> {
+class _QuizScreenState extends ConsumerState<QuizScreen> {
   int _currentQuestion = 0;
   int _score = 0;
   bool _isAnswered = false;
@@ -39,6 +41,15 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   void _showResult() {
+    // Persist progress before showing the result dialog.
+    ref
+        .read(learningProgressProvider.notifier)
+        .updateProgress(
+          widget.category.id,
+          _score,
+          widget.category.quiz.length,
+        );
+
     final int total = widget.category.quiz.length;
     final String emoji = _score == total
         ? '🎉'

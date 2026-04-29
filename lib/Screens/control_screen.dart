@@ -1,85 +1,60 @@
-import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:elio/services/websocket_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ControlScreen extends StatefulWidget {
+import '../providers/robot_provider.dart';
+
+class ControlScreen extends ConsumerStatefulWidget {
   const ControlScreen({super.key});
 
   @override
-  State<ControlScreen> createState() => _ControlScreenState();
+  ConsumerState<ControlScreen> createState() => _ControlScreenState();
 }
 
-class _ControlScreenState extends State<ControlScreen> {
-  final WebSocketService _ws = WebSocketService();
-
-  StreamSubscription<Uint8List>? _frameSub;
-
+class _ControlScreenState extends ConsumerState<ControlScreen> {
   Uint8List? _currentFrame;
-  String _currentStatus = 'Connecting...';
+  ProviderSubscription<AsyncValue<Uint8List>>? _frameSubscription;
 
-  double _pwmSpeed = 75;
-  double _baseAngle = 90;
-  double _elbowAngle = 45;
-  double _gripperVal = 10;
-
-  final Color backgroundMain = const Color(0xFFF5F7F6);
-  final Color textPrimary = const Color(0xFF1C2833);
-  final Color textSecondary = const Color(0xFF7F8C8D);
-  final Color primaryColor = const Color(0xFF1D9E75);
-  final Color blueAccent = const Color(0xFF3498DB);
-  final Color purpleAccent = const Color(0xFF9B59B6);
-  final Color orangeAccent = const Color(0xFFE67E22);
-  final Color redAccent = const Color(0xFFE74C3C);
-  final Color cardBorder = const Color(0xFFE8ECEB);
-  final Color surface = Colors.white;
-
-  bool get _isOperational => _currentStatus == 'Connected';
+  static const Color backgroundMain = Color(0xFFF5F7F6);
+  static const Color textPrimary = Color(0xFF1C2833);
+  static const Color textSecondary = Color(0xFF7F8C8D);
+  static const Color primaryColor = Color(0xFF1D9E75);
+  static const Color orangeAccent = Color(0xFFE67E22);
+  static const Color redAccent = Color(0xFFE74C3C);
+  static const Color cardBorder = Color(0xFFE8ECEB);
 
   @override
   void initState() {
     super.initState();
-
-    _currentStatus = _ws.connectionStatus.value;
-    _ws.connectionStatus.addListener(_onStatusChanged);
-
-    _frameSub = _ws.frames.listen((frame) {
-      if (!mounted) return;
-      setState(() => _currentFrame = frame);
+    // Subscribe to camera frames outside of build to avoid re-registering
+    // the listener on every rebuild.
+    _frameSubscription = ref.listenManual(robotFrameProvider, (_, next) {
+      if (next.hasValue && mounted) {
+        setState(() => _currentFrame = next.value);
+      }
     });
-
-    _ws.connect();
-  }
-
-  void _onStatusChanged() {
-    if (mounted) {
-      setState(() {
-        _currentStatus = _ws.connectionStatus.value;
-      });
-    }
+    // Connect to the robot when the control screen opens.
+    ref.read(robotControlProvider.notifier).connect();
   }
 
   @override
   void dispose() {
-    _ws.connectionStatus.removeListener(_onStatusChanged);
-    _frameSub?.cancel();
-    _ws.disconnect();
+    _frameSubscription?.close();
+    // Disconnect when leaving the control screen.
+    ref.read(robotControlProvider.notifier).disconnect();
     super.dispose();
-  }
-
-  void _sendMotor(int left, int right) {
-    _ws.sendMotorCommand(left, right);
-  }
-
-  void _sendServo(String part, double value) {
-    _ws.sendServoCommand(part, value.toInt());
   }
 
   @override
   Widget build(BuildContext context) {
-    final isConnected = _currentStatus == 'Connected';
-    final isReconnecting = _currentStatus == 'Reconnecting...';
+    final robotState = ref.watch(robotControlProvider);
+    final status =
+        ref.watch(robotStatusProvider).value ?? 'Disconnected';
+
+    final isConnected = status == 'Connected';
+    final isReconnecting = status == 'Reconnecting...';
+    final isOperational = isConnected;
 
     return Scaffold(
       backgroundColor: backgroundMain,
@@ -96,9 +71,9 @@ class _ControlScreenState extends State<ControlScreen> {
                 const SizedBox(height: 16),
                 _buildCameraCard(),
                 const SizedBox(height: 16),
-                _buildDriveControls(),
+                _buildDriveControls(robotState, isOperational),
                 const SizedBox(height: 16),
-                _buildArmControls(),
+                _buildArmControls(robotState, isOperational),
                 const SizedBox(height: 24),
               ],
             ),
@@ -412,22 +387,24 @@ class _ControlScreenState extends State<ControlScreen> {
     );
   }
 
-  Widget _buildDriveControls() {
+  Widget _buildDriveControls(RobotState robotState, bool isOperational) {
+    final notifier = ref.read(robotControlProvider.notifier);
+    final speed = robotState.pwmSpeed;
     return _buildSection(
       title: 'DRIVE CONTROLS',
       child: AbsorbPointer(
-        absorbing: !_isOperational,
+        absorbing: !isOperational,
         child: Opacity(
-          opacity: _isOperational ? 1.0 : 0.3,
+          opacity: isOperational ? 1.0 : 0.3,
           child: Column(
             children: [
               _buildSliderCard(
                 label: 'Speed (PWM)',
-                valueText: '${_pwmSpeed.toInt()}%',
-                value: _pwmSpeed,
+                valueText: '${speed.toInt()}%',
+                value: speed,
                 min: 0,
                 max: 100,
-                onChanged: (val) => setState(() => _pwmSpeed = val),
+                onChanged: (val) => notifier.setPwmSpeed(val),
               ),
               const SizedBox(height: 16),
               SizedBox(
@@ -444,15 +421,15 @@ class _ControlScreenState extends State<ControlScreen> {
                     const SizedBox(),
                     _buildDpadButton(
                       Icons.arrow_upward,
-                      () => _sendMotor(_pwmSpeed.toInt(), _pwmSpeed.toInt()),
+                      () => notifier.sendMotor(speed.toInt(), speed.toInt()),
                     ),
                     const SizedBox(),
                     _buildDpadButton(
                       Icons.arrow_back,
-                      () => _sendMotor(-_pwmSpeed.toInt(), _pwmSpeed.toInt()),
+                      () => notifier.sendMotor(-speed.toInt(), speed.toInt()),
                     ),
                     GestureDetector(
-                      onTapDown: (_) => _sendMotor(0, 0),
+                      onTapDown: (_) => notifier.sendMotor(0, 0),
                       child: Container(
                         decoration: BoxDecoration(
                           color: redAccent.withValues(alpha: 0.1),
@@ -461,17 +438,21 @@ class _ControlScreenState extends State<ControlScreen> {
                             color: redAccent.withValues(alpha: 0.2),
                           ),
                         ),
-                        child: Icon(Icons.hexagon, color: redAccent, size: 36),
+                        child: const Icon(
+                          Icons.hexagon,
+                          color: redAccent,
+                          size: 36,
+                        ),
                       ),
                     ),
                     _buildDpadButton(
                       Icons.arrow_forward,
-                      () => _sendMotor(_pwmSpeed.toInt(), -_pwmSpeed.toInt()),
+                      () => notifier.sendMotor(speed.toInt(), -speed.toInt()),
                     ),
                     const SizedBox(),
                     _buildDpadButton(
                       Icons.arrow_downward,
-                      () => _sendMotor(-_pwmSpeed.toInt(), -_pwmSpeed.toInt()),
+                      () => notifier.sendMotor(-speed.toInt(), -speed.toInt()),
                     ),
                     const SizedBox(),
                   ],
@@ -484,49 +465,41 @@ class _ControlScreenState extends State<ControlScreen> {
     );
   }
 
-  Widget _buildArmControls() {
+  Widget _buildArmControls(RobotState robotState, bool isOperational) {
+    final notifier = ref.read(robotControlProvider.notifier);
     return _buildSection(
       title: 'ARM MANIPULATION',
       child: AbsorbPointer(
-        absorbing: !_isOperational,
+        absorbing: !isOperational,
         child: Opacity(
-          opacity: _isOperational ? 1.0 : 0.3,
+          opacity: isOperational ? 1.0 : 0.3,
           child: Column(
             children: [
               _buildSliderCard(
                 label: 'Base',
-                valueText: '${_baseAngle.toInt()}°',
-                value: _baseAngle,
+                valueText: '${robotState.baseAngle.toInt()}°',
+                value: robotState.baseAngle,
                 min: 0,
                 max: 180,
-                onChanged: (val) {
-                  setState(() => _baseAngle = val);
-                  _sendServo('base', val);
-                },
+                onChanged: notifier.setBaseAngle,
               ),
               const SizedBox(height: 18),
               _buildSliderCard(
                 label: 'Elbow',
-                valueText: '${_elbowAngle.toInt()}°',
-                value: _elbowAngle,
+                valueText: '${robotState.elbowAngle.toInt()}°',
+                value: robotState.elbowAngle,
                 min: 0,
                 max: 180,
-                onChanged: (val) {
-                  setState(() => _elbowAngle = val);
-                  _sendServo('elbow', val);
-                },
+                onChanged: notifier.setElbowAngle,
               ),
               const SizedBox(height: 18),
               _buildSliderCard(
                 label: 'Gripper',
-                valueText: _gripperVal < 30 ? 'Open' : 'Closed',
-                value: _gripperVal,
+                valueText: robotState.gripperVal < 30 ? 'Open' : 'Closed',
+                value: robotState.gripperVal,
                 min: 0,
                 max: 100,
-                onChanged: (val) {
-                  setState(() => _gripperVal = val);
-                  _sendServo('gripper', val);
-                },
+                onChanged: notifier.setGripperVal,
               ),
               const SizedBox(height: 16),
               Row(
@@ -535,7 +508,7 @@ class _ControlScreenState extends State<ControlScreen> {
                     child: SizedBox(
                       height: 56,
                       child: ElevatedButton(
-                        onPressed: () => _sendServo('gripper', 100),
+                        onPressed: notifier.pickUp,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primaryColor,
                           foregroundColor: Colors.white,
@@ -566,10 +539,10 @@ class _ControlScreenState extends State<ControlScreen> {
                     child: SizedBox(
                       height: 56,
                       child: OutlinedButton(
-                        onPressed: () => _sendServo('gripper', 0),
+                        onPressed: notifier.release,
                         style: OutlinedButton.styleFrom(
                           foregroundColor: textPrimary,
-                          side: BorderSide(color: cardBorder),
+                          side: const BorderSide(color: cardBorder),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
@@ -685,8 +658,8 @@ class _ControlScreenState extends State<ControlScreen> {
   Widget _buildDpadButton(IconData icon, VoidCallback onTap) {
     return GestureDetector(
       onTapDown: (_) => onTap(),
-      onTapUp: (_) => _sendMotor(0, 0),
-      onTapCancel: () => _sendMotor(0, 0),
+      onTapUp: (_) => ref.read(robotControlProvider.notifier).sendMotor(0, 0),
+      onTapCancel: () => ref.read(robotControlProvider.notifier).sendMotor(0, 0),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
